@@ -48,7 +48,6 @@ export class Fixture {
   private readonly funder: Signer;
   private readonly funderLiquity: Liquity;
   private readonly funderAddress: string;
-  private readonly frontendAddress: string;
   private readonly gasHistograms: GasHistograms;
 
   private price: Decimal;
@@ -60,14 +59,12 @@ export class Fixture {
     funder: Signer,
     funderLiquity: Liquity,
     funderAddress: string,
-    frontendAddress: string,
     price: Decimal
   ) {
     this.deployerLiquity = deployerLiquity;
     this.funder = funder;
     this.funderLiquity = funderLiquity;
     this.funderAddress = funderAddress;
-    this.frontendAddress = frontendAddress;
     this.price = price;
 
     this.gasHistograms = {
@@ -86,20 +83,15 @@ export class Fixture {
     deployerLiquity: Liquity,
     funder: Signer,
     funderLiquity: Liquity,
-    frontendAddress: string,
-    frontendLiquity: Liquity
   ) {
     const funderAddress = await funder.getAddress();
     const price = await deployerLiquity.getPrice();
-
-    await frontendLiquity.registerFrontend(Decimal.from(10).div(11));
 
     return new Fixture(
       deployerLiquity,
       funder,
       funderLiquity,
       funderAddress,
-      frontendAddress,
       price
     );
   }
@@ -350,7 +342,7 @@ export class Fixture {
     console.log(`[${shortenAddress(userAddress)}] depositLUSDInStabilityPool(${amount})`);
 
     await this.gasHistograms.depositLUSDInStabilityPool.expectSuccess(() =>
-      liquity.send.depositLUSDInStabilityPool(amount, this.frontendAddress, {
+      liquity.send.depositLUSDInStabilityPool(amount, {
         gasPrice: 0
       })
     );

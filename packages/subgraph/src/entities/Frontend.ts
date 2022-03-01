@@ -3,16 +3,6 @@ import { Frontend } from "../../generated/schema";
 import { decimalize } from "../utils/bignumbers";
 import { getUser } from "./User";
 
-export function registerFrontend(ownerAddress: Address, kickbackRate: BigInt): void {
-  let owner = getUser(ownerAddress);
-  let frontend = new Frontend(owner.id);
-
-  frontend.owner = owner.id;
-  frontend.kickbackRate = decimalize(kickbackRate);
-
-  frontend.save();
-}
-
 export function assignFrontendToDepositor(
   depositorAddress: Address,
   frontendAddress: Address

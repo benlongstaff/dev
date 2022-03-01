@@ -122,7 +122,6 @@ dataSources:
         - StabilityDeposit
         - StabilityDepositChange
         - SystemState
-        - Frontend
       abis:
         - name: StabilityPool
           file: ../lib-ethers/abi/StabilityPool.json
@@ -131,10 +130,6 @@ dataSources:
           handler: handleUserDepositChanged
         - event: ETHGainWithdrawn(indexed address,uint256,uint256)
           handler: handleETHGainWithdrawn
-        - event: FrontEndRegistered(indexed address,uint256)
-          handler: handleFrontendRegistered
-        - event: FrontEndTagSet(indexed address,indexed address)
-          handler: handleFrontendTagSet
   - name: CollSurplusPool
     kind: ethereum/contract
     network: mainnet
