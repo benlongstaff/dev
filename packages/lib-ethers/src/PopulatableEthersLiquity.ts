@@ -608,15 +608,10 @@ export class PopulatableEthersLiquity
       .extractEvents(logs, "ETHGainWithdrawn")
       .map(({ args: { _ETH, _LUSDLoss } }) => [decimalify(_ETH), decimalify(_LUSDLoss)]);
 
-    const [lqtyReward] = stabilityPool
-      .extractEvents(logs, "LQTYPaidToDepositor")
-      .map(({ args: { _LQTY } }) => decimalify(_LQTY));
-
     return {
       lusdLoss,
       newLUSDDeposit,
-      collateralGain,
-      lqtyReward
+      collateralGain
     };
   }
 
@@ -1371,17 +1366,6 @@ export class PopulatableEthersLiquity
         addGasForUnipoolRewardUpdate,
         Decimal.from(amount).hex
       )
-    );
-  }
-
-  /** {@inheritDoc @liquity/lib-base#PopulatableLiquity.withdrawLQTYRewardFromLiquidityMining} */
-  async withdrawLQTYRewardFromLiquidityMining(
-    overrides?: EthersTransactionOverrides
-  ): Promise<PopulatedEthersLiquityTransaction<void>> {
-    const { unipool } = _getContracts(this._readable.connection);
-
-    return this._wrapSimpleTransaction(
-      await unipool.estimateAndPopulate.claimReward({ ...overrides }, addGasForUnipoolRewardUpdate)
     );
   }
 

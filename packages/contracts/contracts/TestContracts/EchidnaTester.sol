@@ -80,7 +80,7 @@ contract EchidnaTester {
 
         stabilityPool.setAddresses(address(borrowerOperations),
             address(troveManager), address(activePool), address(lusdToken),
-            address(sortedTroves), address(priceFeedTestnet), address(0));
+            address(sortedTroves), address(priceFeedTestnet));
 
         collSurplusPool.setAddresses(address(borrowerOperations),
              address(troveManager), address(activePool));

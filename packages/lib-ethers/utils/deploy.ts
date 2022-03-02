@@ -228,8 +228,7 @@ const connectContracts = async (
         activePool.address,
         lusdToken.address,
         sortedTroves.address,
-        priceFeed.address,
-        communityIssuance.address,
+        priceFeed.address,      
         { ...overrides, nonce }
       ),
 

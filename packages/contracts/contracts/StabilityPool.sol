@@ -8,7 +8,6 @@ import './Interfaces/IBorrowerOperations.sol';
 import './Interfaces/ITroveManager.sol';
 import './Interfaces/ILUSDToken.sol';
 import './Interfaces/ISortedTroves.sol';
-import "./Interfaces/ICommunityIssuance.sol";
 import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/SafeMath.sol";
 import "./Dependencies/LiquitySafeMath128.sol";
@@ -128,17 +127,6 @@ import "./Dependencies/console.sol";
  * Please see the implementation spec in the proof document, which closely follows on from the compounded deposit / ETH gain derivations:
  * https://github.com/liquity/liquity/blob/master/papers/Scalable_Reward_Distribution_with_Compounding_Stakes.pdf
  *
- *
- * --- LQTY ISSUANCE TO STABILITY POOL DEPOSITORS ---
- *
- * An LQTY issuance event occurs at every deposit operation, and every liquidation.
- *
- * Please see the system Readme for an overview:
- * https://github.com/liquity/dev/blob/main/README.md#lqty-issuance-to-stability-providers
- *
- * We use the same mathematical product-sum approach to track LQTY gains for depositors, where 'G' is the sum corresponding to LQTY gains.
- * The product P (and snapshot P_t) is re-used, as the ratio P/P_t tracks a deposit's depletion due to liquidations.
- *
  */
 contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     using LiquitySafeMath128 for uint128;
@@ -154,8 +142,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     // Needed to check if there are pending liquidations
     ISortedTroves public sortedTroves;
 
-    ICommunityIssuance public communityIssuance;
-
     uint256 internal ETH;  // deposited ether tracker
 
     // Tracker for LUSD held in the pool. Changes when users deposit/withdraw, and when Trove debt is offset.
@@ -170,7 +156,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     struct Snapshots {
         uint S;
         uint P;
-        uint G;
         uint128 scale;
         uint128 epoch;
     }
@@ -204,17 +189,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     */
     mapping (uint128 => mapping(uint128 => uint)) public epochToScaleToSum;
 
-    /*
-    * Similarly, the sum 'G' is used to calculate LQTY gains. During it's lifetime, each deposit d_t earns a LQTY gain of
-    *  ( d_t * [G - G_t] )/P_t, where G_t is the depositor's snapshot of G taken at time t when  the deposit was made.
-    *
-    *  LQTY reward events occur are triggered by depositor operations (new deposit, topup, withdrawal), and liquidations.
-    *  In each case, the LQTY reward is issued (i.e. G is updated), before other state changes are made.
-    */
-    mapping (uint128 => mapping(uint128 => uint)) public epochToScaleToG;
-
-    // Error tracker for the error correction in the LQTY issuance calculation
-    uint public lastLQTYError;
     // Error trackers for the error correction in the offset calculation
     uint public lastETHError_Offset;
     uint public lastLUSDLossError_Offset;
@@ -231,19 +205,16 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     event LUSDTokenAddressChanged(address _newLUSDTokenAddress);
     event SortedTrovesAddressChanged(address _newSortedTrovesAddress);
     event PriceFeedAddressChanged(address _newPriceFeedAddress);
-    event CommunityIssuanceAddressChanged(address _newCommunityIssuanceAddress);
 
     event P_Updated(uint _P);
     event S_Updated(uint _S, uint128 _epoch, uint128 _scale);
-    event G_Updated(uint _G, uint128 _epoch, uint128 _scale);
     event EpochUpdated(uint128 _currentEpoch);
     event ScaleUpdated(uint128 _currentScale);
 
-    event DepositSnapshotUpdated(address indexed _depositor, uint _P, uint _S, uint _G);
+    event DepositSnapshotUpdated(address indexed _depositor, uint _P, uint _S);
     event UserDepositChanged(address indexed _depositor, uint _newDeposit);
 
     event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _LUSDLoss);
-    event LQTYPaidToDepositor(address indexed _depositor, uint _LQTY);
     event EtherSent(address _to, uint _amount);
 
     // --- Contract setters ---
@@ -254,8 +225,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         address _activePoolAddress,
         address _lusdTokenAddress,
         address _sortedTrovesAddress,
-        address _priceFeedAddress,
-        address _communityIssuanceAddress
+        address _priceFeedAddress
     )
         external
         override
@@ -267,7 +237,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         checkContract(_lusdTokenAddress);
         checkContract(_sortedTrovesAddress);
         checkContract(_priceFeedAddress);
-        checkContract(_communityIssuanceAddress);
 
         borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
         troveManager = ITroveManager(_troveManagerAddress);
@@ -275,7 +244,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         lusdToken = ILUSDToken(_lusdTokenAddress);
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         priceFeed = IPriceFeed(_priceFeedAddress);
-        communityIssuance = ICommunityIssuance(_communityIssuanceAddress);
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit TroveManagerAddressChanged(_troveManagerAddress);
@@ -283,7 +251,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         emit LUSDTokenAddressChanged(_lusdTokenAddress);
         emit SortedTrovesAddressChanged(_sortedTrovesAddress);
         emit PriceFeedAddressChanged(_priceFeedAddress);
-        emit CommunityIssuanceAddressChanged(_communityIssuanceAddress);
 
         _renounceOwnership();
     }
@@ -309,10 +276,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         _requireNonZeroAmount(_amount);
 
         uint initialDeposit = deposits[msg.sender].initialValue;
-
-        ICommunityIssuance communityIssuanceCached = communityIssuance;
-
-        _triggerLQTYIssuance(communityIssuanceCached);
 
         uint depositorETHGain = getDepositorETHGain(msg.sender);
         uint compoundedLUSDDeposit = getCompoundedLUSDDeposit(msg.sender);
@@ -340,10 +303,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         if (_amount !=0) {_requireNoUnderCollateralizedTroves();}
         uint initialDeposit = deposits[msg.sender].initialValue;
         _requireUserHasDeposit(initialDeposit);
-
-        ICommunityIssuance communityIssuanceCached = communityIssuance;
-
-        _triggerLQTYIssuance(communityIssuanceCached);
 
         uint depositorETHGain = getDepositorETHGain(msg.sender);
 
@@ -373,10 +332,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         _requireUserHasTrove(msg.sender);
         _requireUserHasETHGain(msg.sender);
 
-        ICommunityIssuance communityIssuanceCached = communityIssuance;
-
-        _triggerLQTYIssuance(communityIssuanceCached);
-
         uint depositorETHGain = getDepositorETHGain(msg.sender);
 
         uint compoundedLUSDDeposit = getCompoundedLUSDDeposit(msg.sender);
@@ -397,51 +352,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         borrowerOperations.moveETHGainToTrove{ value: depositorETHGain }(msg.sender, _upperHint, _lowerHint);
     }
 
-    // --- LQTY issuance functions ---
-
-    function _triggerLQTYIssuance(ICommunityIssuance _communityIssuance) internal {
-        uint LQTYIssuance = _communityIssuance.issueLQTY();
-       _updateG(LQTYIssuance);
-    }
-
-    function _updateG(uint _LQTYIssuance) internal {
-        uint totalLUSD = totalLUSDDeposits; // cached to save an SLOAD
-        /*
-        * When total deposits is 0, G is not updated. In this case, the LQTY issued can not be obtained by later
-        * depositors - it is missed out on, and remains in the balanceof the CommunityIssuance contract.
-        *
-        */
-        if (totalLUSD == 0 || _LQTYIssuance == 0) {return;}
-
-        uint LQTYPerUnitStaked;
-        LQTYPerUnitStaked =_computeLQTYPerUnitStaked(_LQTYIssuance, totalLUSD);
-
-        uint marginalLQTYGain = LQTYPerUnitStaked.mul(P);
-        epochToScaleToG[currentEpoch][currentScale] = epochToScaleToG[currentEpoch][currentScale].add(marginalLQTYGain);
-
-        emit G_Updated(epochToScaleToG[currentEpoch][currentScale], currentEpoch, currentScale);
-    }
-
-    function _computeLQTYPerUnitStaked(uint _LQTYIssuance, uint _totalLUSDDeposits) internal returns (uint) {
-        /*
-        * Calculate the LQTY-per-unit staked.  Division uses a "feedback" error correction, to keep the
-        * cumulative error low in the running total G:
-        *
-        * 1) Form a numerator which compensates for the floor division error that occurred the last time this
-        * function was called.
-        * 2) Calculate "per-unit-staked" ratio.
-        * 3) Multiply the ratio back by its denominator, to reveal the current floor division error.
-        * 4) Store this error for use in the next correction when this function is called.
-        * 5) Note: static analysis tools complain about this "division before multiplication", however, it is intended.
-        */
-        uint LQTYNumerator = _LQTYIssuance.mul(DECIMAL_PRECISION).add(lastLQTYError);
-
-        uint LQTYPerUnitStaked = LQTYNumerator.div(_totalLUSDDeposits);
-        lastLQTYError = LQTYNumerator.sub(LQTYPerUnitStaked.mul(_totalLUSDDeposits));
-
-        return LQTYPerUnitStaked;
-    }
-
     // --- Liquidation functions ---
 
     /*
@@ -453,8 +363,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         _requireCallerIsTroveManager();
         uint totalLUSD = totalLUSDDeposits; // cached to save an SLOAD
         if (totalLUSD == 0 || _debtToOffset == 0) { return; }
-
-        _triggerLQTYIssuance(communityIssuance);
 
         (uint ETHGainPerUnitStaked,
             uint LUSDLossPerUnitStaked) = _computeRewardsPerUnitStaked(_collToAdd, _debtToOffset, totalLUSD);
@@ -614,44 +522,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         return ETHGain;
     }
 
-    /*
-    * Calculate the LQTY gain earned by a deposit since its last snapshots were taken.
-    * Given by the formula:  LQTY = d0 * (G - G(0))/P(0)
-    * where G(0) and P(0) are the depositor's snapshots of the sum G and product P, respectively.
-    * d0 is the last recorded deposit value.
-    */
-    function getDepositorLQTYGain(address _depositor) public view override returns (uint) {
-        uint initialDeposit = deposits[_depositor].initialValue;
-        if (initialDeposit == 0) {return 0;}
-
-        uint kickbackRate = DECIMAL_PRECISION;
-
-        Snapshots memory snapshots = depositSnapshots[_depositor];
-
-        uint LQTYGain = kickbackRate.mul(_getLQTYGainFromSnapshots(initialDeposit, snapshots)).div(DECIMAL_PRECISION);
-
-        return LQTYGain;
-    }
-
-    function _getLQTYGainFromSnapshots(uint initialStake, Snapshots memory snapshots) internal view returns (uint) {
-       /*
-        * Grab the sum 'G' from the epoch at which the stake was made. The LQTY gain may span up to one scale change.
-        * If it does, the second portion of the LQTY gain is scaled by 1e9.
-        * If the gain spans no scale change, the second portion will be 0.
-        */
-        uint128 epochSnapshot = snapshots.epoch;
-        uint128 scaleSnapshot = snapshots.scale;
-        uint G_Snapshot = snapshots.G;
-        uint P_Snapshot = snapshots.P;
-
-        uint firstPortion = epochToScaleToG[epochSnapshot][scaleSnapshot].sub(G_Snapshot);
-        uint secondPortion = epochToScaleToG[epochSnapshot][scaleSnapshot.add(1)].div(SCALE_FACTOR);
-
-        uint LQTYGain = initialStake.mul(firstPortion.add(secondPortion)).div(P_Snapshot).div(DECIMAL_PRECISION);
-
-        return LQTYGain;
-    }
-
     // --- Compounded deposit ---
 
     /*
@@ -713,7 +583,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         return compoundedStake;
     }
 
-    // --- Sender functions for LUSD deposit, ETH gains and LQTY gains ---
+    // --- Sender functions for LUSD deposit and ETH gains ---
 
     // Transfer the LUSD tokens from the user to the Stability Pool's address, and update its recorded LUSD
     function _sendLUSDtoStabilityPool(address _address, uint _amount) internal {
@@ -750,32 +620,23 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
         if (_newValue == 0) {
             delete depositSnapshots[_depositor];
-            emit DepositSnapshotUpdated(_depositor, 0, 0, 0);
+            emit DepositSnapshotUpdated(_depositor, 0, 0);
             return;
         }
         uint128 currentScaleCached = currentScale;
         uint128 currentEpochCached = currentEpoch;
         uint currentP = P;
 
-        // Get S and G for the current epoch and current scale
+        // Get S for the current epoch and current scale
         uint currentS = epochToScaleToSum[currentEpochCached][currentScaleCached];
-        uint currentG = epochToScaleToG[currentEpochCached][currentScaleCached];
 
         // Record new snapshots of the latest running product P, sum S, and sum G, for the depositor
         depositSnapshots[_depositor].P = currentP;
         depositSnapshots[_depositor].S = currentS;
-        depositSnapshots[_depositor].G = currentG;
         depositSnapshots[_depositor].scale = currentScaleCached;
         depositSnapshots[_depositor].epoch = currentEpochCached;
 
-        emit DepositSnapshotUpdated(_depositor, currentP, currentS, currentG);
-    }
-
-    function _payOutLQTYGains(ICommunityIssuance _communityIssuance, address _depositor) internal {
-        // Pay out depositor's LQTY gain
-        uint depositorLQTYGain = getDepositorLQTYGain(_depositor);
-        _communityIssuance.sendLQTY(_depositor, depositorLQTYGain);
-        emit LQTYPaidToDepositor(_depositor, depositorLQTYGain);
+        emit DepositSnapshotUpdated(_depositor, currentP, currentS);
     }
 
     // --- 'require' functions ---
@@ -815,10 +676,6 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     function _requireUserHasETHGain(address _depositor) internal view {
         uint ETHGain = getDepositorETHGain(_depositor);
         require(ETHGain > 0, "StabilityPool: caller must have non-zero ETH Gain");
-    }
-
-    function  _requireValidKickbackRate(uint _kickbackRate) internal pure {
-        require (_kickbackRate <= DECIMAL_PRECISION, "StabilityPool: Kickback rate must be in range [0,1]");
     }
 
     // --- Fallback function ---

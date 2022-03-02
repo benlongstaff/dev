@@ -21,12 +21,6 @@ pragma solidity 0.6.11;
  * Please see the implementation spec in the proof document, which closely follows on from the compounded deposit / ETH gain derivations:
  * https://github.com/liquity/liquity/blob/master/papers/Scalable_Reward_Distribution_with_Compounding_Stakes.pdf
  *
- * --- LQTY ISSUANCE TO STABILITY POOL DEPOSITORS ---
- *
- * An LQTY issuance event occurs at every deposit operation, and every liquidation.
- *
- * Please see the system Readme for an overview:
- * https://github.com/liquity/dev/blob/main/README.md#lqty-issuance-to-stability-providers
  */
 interface IStabilityPool {
 
@@ -42,19 +36,16 @@ interface IStabilityPool {
     event LUSDTokenAddressChanged(address _newLUSDTokenAddress);
     event SortedTrovesAddressChanged(address _newSortedTrovesAddress);
     event PriceFeedAddressChanged(address _newPriceFeedAddress);
-    event CommunityIssuanceAddressChanged(address _newCommunityIssuanceAddress);
 
     event P_Updated(uint _P);
     event S_Updated(uint _S, uint128 _epoch, uint128 _scale);
-    event G_Updated(uint _G, uint128 _epoch, uint128 _scale);
     event EpochUpdated(uint128 _currentEpoch);
     event ScaleUpdated(uint128 _currentScale);
 
-    event DepositSnapshotUpdated(address indexed _depositor, uint _P, uint _S, uint _G);
+    event DepositSnapshotUpdated(address indexed _depositor, uint _P, uint _S);
     event UserDepositChanged(address indexed _depositor, uint _newDeposit);
 
     event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _LUSDLoss);
-    event LQTYPaidToDepositor(address indexed _depositor, uint _LQTY);
     event EtherSent(address _to, uint _amount);
 
     // --- Functions ---
@@ -69,8 +60,7 @@ interface IStabilityPool {
         address _activePoolAddress,
         address _lusdTokenAddress,
         address _sortedTrovesAddress,
-        address _priceFeedAddress,
-        address _communityIssuanceAddress
+        address _priceFeedAddress
     ) external;
 
     /*
@@ -131,11 +121,6 @@ interface IStabilityPool {
      * Calculates the ETH gain earned by the deposit since its last snapshots were taken.
      */
     function getDepositorETHGain(address _depositor) external view returns (uint);
-
-    /*
-     * Calculate the LQTY gain earned by a deposit since its last snapshots were taken.
-     */
-    function getDepositorLQTYGain(address _depositor) external view returns (uint);
 
     /*
      * Return the user's compounded deposit.

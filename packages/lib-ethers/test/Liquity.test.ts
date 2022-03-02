@@ -448,7 +448,6 @@ describe("EthersLiquity", () => {
         lusdLoss: Decimal.from(0),
         newLUSDDeposit: smallStabilityDeposit,
         collateralGain: Decimal.from(0),
-        lqtyReward: undefined,
 
         change: {
           depositLUSD: smallStabilityDeposit
@@ -508,8 +507,7 @@ describe("EthersLiquity", () => {
           troveWithVeryLowICR.collateral
             .mul(0.995) // -0.5% gas compensation
             .mulDiv(smallStabilityDeposit, troveWithVeryLowICR.debt)
-            .sub("0.000000000000000005"), // tiny imprecision
-          Decimal.ZERO
+            .sub("0.000000000000000005") // tiny imprecision
         )
       );
     });
@@ -550,7 +548,6 @@ describe("EthersLiquity", () => {
       expect(details).to.deep.equal({
         lusdLoss: smallStabilityDeposit,
         newLUSDDeposit: Decimal.ZERO,
-        lqtyReward: undefined,
 
         collateralGain: troveWithVeryLowICR.collateral
           .mul(0.995) // -0.5% gas compensation
@@ -940,25 +937,6 @@ describe("EthersLiquity", () => {
       expect(`${stake}`).to.equal(`${someUniTokens}`);
     });
 
-    it("should have an LQTY reward after some time has passed", async function () {
-      this.timeout("20s");
-
-      // Liquidity mining rewards are seconds-based, so we don't need to wait long.
-      // By actually waiting in real time, we avoid using increaseTime(), which only works on
-      // Hardhat EVM.
-      await new Promise(resolve => setTimeout(resolve, 4000));
-
-      // Trigger a new block with a dummy TX.
-      await liquity._mintUniToken(0);
-
-      const lqtyReward = Number(await liquity.getLiquidityMiningLQTYReward());
-      expect(lqtyReward).to.be.at.least(1); // ~0.2572 per second [(4e6/3) / (60*24*60*60)]
-
-      await liquity.withdrawLQTYRewardFromLiquidityMining();
-      const lqtyBalance = Number(await liquity.getLQTYBalance());
-      expect(lqtyBalance).to.be.at.least(lqtyReward); // may have increased since checking
-    });
-
     it("should partially unstake", async () => {
       await liquity.unstakeUniTokens(someUniTokens / 2);
 
@@ -967,38 +945,6 @@ describe("EthersLiquity", () => {
 
       const uniTokenBalance = await liquity.getUniTokenBalance();
       expect(`${uniTokenBalance}`).to.equal(`${someUniTokens / 2}`);
-    });
-
-    it("should unstake remaining tokens and withdraw remaining LQTY reward", async () => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await liquity._mintUniToken(0); // dummy block
-      await liquity.exitLiquidityMining();
-
-      const uniTokenStake = await liquity.getLiquidityMiningStake();
-      expect(`${uniTokenStake}`).to.equal("0");
-
-      const lqtyReward = await liquity.getLiquidityMiningLQTYReward();
-      expect(`${lqtyReward}`).to.equal("0");
-
-      const uniTokenBalance = await liquity.getUniTokenBalance();
-      expect(`${uniTokenBalance}`).to.equal(`${someUniTokens}`);
-    });
-
-    it("should have no more rewards after the mining period is over", async function () {
-      if (network.name !== "hardhat") {
-        // increaseTime() only works on Hardhat EVM
-        this.skip();
-      }
-
-      await liquity.stakeUniTokens(someUniTokens);
-      await increaseTime(2 * 30 * 24 * 60 * 60);
-      await liquity.exitLiquidityMining();
-
-      const remainingLQTYReward = await liquity.getRemainingLiquidityMiningLQTYReward();
-      expect(`${remainingLQTYReward}`).to.equal("0");
-
-      const lqtyBalance = Number(await liquity.getLQTYBalance());
-      expect(lqtyBalance).to.be.within(1333333, 1333334);
     });
   });
 
