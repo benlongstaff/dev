@@ -87,7 +87,7 @@ contract('StabilityPool', async accounts => {
       // --- TEST ---
 
       // provideToSP()
-      await stabilityPool.provideToSP(200, ZERO_ADDRESS, { from: alice })
+      await stabilityPool.provideToSP(200, { from: alice })
 
       // check LUSD balances after
       const stabilityPool_LUSD_After = await stabilityPool.getTotalLUSDDeposits()
@@ -172,7 +172,6 @@ contract('StabilityPool', async accounts => {
       // --- TEST ---
       const P_Before = (await stabilityPool.P())
       const S_Before = (await stabilityPool.epochToScaleToSum(0, 0))
-      const G_Before = (await stabilityPool.epochToScaleToG(0, 0))
       assert.isTrue(P_Before.gt(toBN('0')))
       assert.isTrue(S_Before.gt(toBN('0')))
 
@@ -180,10 +179,8 @@ contract('StabilityPool', async accounts => {
       const alice_snapshot_Before = await stabilityPool.depositSnapshots(alice)
       const alice_snapshot_S_Before = alice_snapshot_Before[0].toString()
       const alice_snapshot_P_Before = alice_snapshot_Before[1].toString()
-      const alice_snapshot_G_Before = alice_snapshot_Before[2].toString()
       assert.equal(alice_snapshot_S_Before, '0')
       assert.equal(alice_snapshot_P_Before, '0')
-      assert.equal(alice_snapshot_G_Before, '0')
 
       // Make deposit
       await stabilityPool.provideToSP(dec(100, 18), { from: alice })
@@ -192,11 +189,9 @@ contract('StabilityPool', async accounts => {
       const alice_snapshot_After = await stabilityPool.depositSnapshots(alice)
       const alice_snapshot_S_After = alice_snapshot_After[0].toString()
       const alice_snapshot_P_After = alice_snapshot_After[1].toString()
-      const alice_snapshot_G_After = alice_snapshot_After[2].toString()
 
       assert.equal(alice_snapshot_S_After, S_Before)
       assert.equal(alice_snapshot_P_After, P_Before)
-      assert.equal(alice_snapshot_G_After, G_Before)
     })
 
     it("provideToSP(), multiple deposits: updates user's deposit and snapshots", async () => {
@@ -2039,13 +2034,11 @@ contract('StabilityPool', async accounts => {
 
       const S_Before = await stabilityPool.epochToScaleToSum(currentEpoch, currentScale)
       const P_Before = await stabilityPool.P()
-      const G_Before = await stabilityPool.epochToScaleToG(currentEpoch, currentScale)
 
       // Confirm 0 < P < 1
       assert.isTrue(P_Before.gt(toBN('0')) && P_Before.lt(toBN(dec(1, 18))))
       // Confirm S, G are both > 0
       assert.isTrue(S_Before.gt(toBN('0')))
-      assert.isTrue(G_Before.gt(toBN('0')))
 
       // --- TEST ---
 

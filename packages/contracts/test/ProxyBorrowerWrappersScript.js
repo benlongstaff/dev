@@ -230,11 +230,11 @@ contract('BorrowerWrappers', async accounts => {
     // Whale opens Trove
     await openTrove({ extraLUSDAmount: toBN(dec(1850, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: whale } })
     // Whale deposits 1850 LUSD in StabilityPool
-    await stabilityPool.provideToSP(dec(1850, 18), ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(dec(1850, 18), { from: whale })
 
     // alice opens trove and provides 150 LUSD to StabilityPool
     await openTrove({ extraLUSDAmount: toBN(dec(150, 18)), extraParams: { from: alice } })
-    await stabilityPool.provideToSP(dec(150, 18), ZERO_ADDRESS, { from: alice })
+    await stabilityPool.provideToSP(dec(150, 18), { from: alice })
 
     // Defaulter Trove opened
     await openTrove({ ICR: toBN(dec(210, 16)), extraParams: { from: defaulter_1 } })
@@ -259,12 +259,12 @@ contract('BorrowerWrappers', async accounts => {
     const whaleDeposit = toBN(dec(2350, 18))
     await openTrove({ extraLUSDAmount: whaleDeposit, ICR: toBN(dec(4, 18)), extraParams: { from: whale } })
     // Whale deposits 1850 LUSD in StabilityPool
-    await stabilityPool.provideToSP(whaleDeposit, ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(whaleDeposit, { from: whale })
 
     // alice opens trove and provides 150 LUSD to StabilityPool
     const aliceDeposit = toBN(dec(150, 18))
     await openTrove({ extraLUSDAmount: aliceDeposit, ICR: toBN(dec(3, 18)), extraParams: { from: alice } })
-    await stabilityPool.provideToSP(aliceDeposit, ZERO_ADDRESS, { from: alice })
+    await stabilityPool.provideToSP(aliceDeposit, { from: alice })
 
     // Defaulter Trove opened
     const { lusdAmount, netDebt, collateral } = await openTrove({ ICR: toBN(dec(210, 16)), extraParams: { from: defaulter_1 } })
@@ -385,11 +385,11 @@ contract('BorrowerWrappers', async accounts => {
     // Whale opens Trove
     await openTrove({ extraLUSDAmount: toBN(dec(1850, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: whale } })
     // Whale deposits 1850 LUSD in StabilityPool
-    await stabilityPool.provideToSP(dec(1850, 18), ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(dec(1850, 18), { from: whale })
 
     // alice opens trove and provides 150 LUSD to StabilityPool
     //await openTrove({ extraLUSDAmount: toBN(dec(150, 18)), extraParams: { from: alice } })
-    //await stabilityPool.provideToSP(dec(150, 18), ZERO_ADDRESS, { from: alice })
+    //await stabilityPool.provideToSP(dec(150, 18), { from: alice })
 
     // mint some LQTY
     await lqtyTokenOriginal.unprotectedMint(borrowerOperations.getProxyAddressFromUser(whale), dec(1850, 18))
@@ -466,7 +466,7 @@ contract('BorrowerWrappers', async accounts => {
 
     // alice opens trove and provides 150 LUSD to StabilityPool
     await openTrove({ extraLUSDAmount: toBN(dec(150, 18)), extraParams: { from: alice } })
-    await stabilityPool.provideToSP(dec(150, 18), ZERO_ADDRESS, { from: alice })
+    await stabilityPool.provideToSP(dec(150, 18), { from: alice })
 
     // mint some LQTY
     await lqtyTokenOriginal.unprotectedMint(borrowerOperations.getProxyAddressFromUser(whale), dec(1850, 18))
@@ -551,7 +551,7 @@ contract('BorrowerWrappers', async accounts => {
 
     // alice opens trove and provides 150 LUSD to StabilityPool
     await openTrove({ extraLUSDAmount: toBN(dec(150, 18)), extraParams: { from: alice } })
-    await stabilityPool.provideToSP(dec(150, 18), ZERO_ADDRESS, { from: alice })
+    await stabilityPool.provideToSP(dec(150, 18), { from: alice })
 
     // mint some LQTY
     await lqtyTokenOriginal.unprotectedMint(borrowerOperations.getProxyAddressFromUser(whale), dec(1850, 18))
@@ -620,7 +620,7 @@ contract('BorrowerWrappers', async accounts => {
 
     // alice opens trove and provides 150 LUSD to StabilityPool
     await openTrove({ extraLUSDAmount: toBN(dec(150, 18)), extraParams: { from: alice } })
-    await stabilityPool.provideToSP(dec(150, 18), ZERO_ADDRESS, { from: alice })
+    await stabilityPool.provideToSP(dec(150, 18), { from: alice })
 
     // mint some LQTY
     await lqtyTokenOriginal.unprotectedMint(borrowerOperations.getProxyAddressFromUser(whale), dec(1850, 18))

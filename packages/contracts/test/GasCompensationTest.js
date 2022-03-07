@@ -352,8 +352,8 @@ contract('Gas compensation tests', async accounts => {
     await openTrove({ ICR: toBN(dec(2, 18)), extraLUSDAmount: B_totalDebt.add(C_totalDebt), extraParams: { from: erin } })
 
     // D, E each provide LUSD to SP
-    await stabilityPool.provideToSP(A_totalDebt, ZERO_ADDRESS, { from: dennis })
-    await stabilityPool.provideToSP(B_totalDebt.add(C_totalDebt), ZERO_ADDRESS, { from: erin })
+    await stabilityPool.provideToSP(A_totalDebt, { from: dennis })
+    await stabilityPool.provideToSP(B_totalDebt.add(C_totalDebt), { from: erin })
 
     const LUSDinSP_0 = await stabilityPool.getTotalLUSDDeposits()
 
@@ -463,8 +463,8 @@ contract('Gas compensation tests', async accounts => {
     await openTrove({ ICR: toBN(dec(80, 18)), extraLUSDAmount: dec(1, 23), extraParams: { from: erin } })
 
     // D, E each provide 10000 LUSD to SP
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: dennis })
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: erin })
+    await stabilityPool.provideToSP(dec(1, 23), { from: dennis })
+    await stabilityPool.provideToSP(dec(1, 23), { from: erin })
 
     const LUSDinSP_0 = await stabilityPool.getTotalLUSDDeposits()
     const ETHinSP_0 = await stabilityPool.getETH()
@@ -567,8 +567,8 @@ contract('Gas compensation tests', async accounts => {
     await openTrove({ ICR: toBN(dec(4, 18)), extraLUSDAmount: dec(1, 23), extraParams: { from: erin } })
 
     // D, E each provide 10000 LUSD to SP
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: dennis })
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: erin })
+    await stabilityPool.provideToSP(dec(1, 23), { from: dennis })
+    await stabilityPool.provideToSP(dec(1, 23), { from: erin })
 
     const LUSDinSP_0 = await stabilityPool.getTotalLUSDDeposits()
     const ETHinSP_0 = await stabilityPool.getETH()
@@ -668,8 +668,8 @@ contract('Gas compensation tests', async accounts => {
     await openTrove({ ICR: toBN(dec(2, 18)), extraLUSDAmount: B_totalDebt, extraParams: { from: erin } })
 
     // D, E each provide LUSD to SP
-    await stabilityPool.provideToSP(A_totalDebt, ZERO_ADDRESS, { from: dennis })
-    await stabilityPool.provideToSP(B_totalDebt, ZERO_ADDRESS, { from: erin })
+    await stabilityPool.provideToSP(A_totalDebt, { from: dennis })
+    await stabilityPool.provideToSP(B_totalDebt, { from: erin })
 
     const LUSDinSP_0 = await stabilityPool.getTotalLUSDDeposits()
 
@@ -742,8 +742,8 @@ contract('Gas compensation tests', async accounts => {
     await openTrove({ ICR: toBN(dec(80, 18)), extraLUSDAmount: dec(1, 23), extraParams: { from: erin } })
 
     // D, E each provide 10000 LUSD to SP
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: dennis })
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: erin })
+    await stabilityPool.provideToSP(dec(1, 23), { from: dennis })
+    await stabilityPool.provideToSP(dec(1, 23), { from: erin })
 
     const LUSDinSP_0 = await stabilityPool.getTotalLUSDDeposits()
     const ETHinSP_0 = await stabilityPool.getETH()
@@ -838,8 +838,8 @@ contract('Gas compensation tests', async accounts => {
     await openTrove({ ICR: toBN(dec(4, 18)), extraLUSDAmount: dec(1, 23), extraParams: { from: erin } })
 
     // D, E each provide 10000 LUSD to SP
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: dennis })
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: erin })
+    await stabilityPool.provideToSP(dec(1, 23), { from: dennis })
+    await stabilityPool.provideToSP(dec(1, 23), { from: erin })
 
     const LUSDinSP_0 = await stabilityPool.getTotalLUSDDeposits()
     const ETHinSP_0 = await stabilityPool.getETH()
@@ -919,8 +919,8 @@ contract('Gas compensation tests', async accounts => {
     await openTrove({ ICR: toBN(dec(10, 18)), extraLUSDAmount: dec(1, 23), extraParams: { from: flyn } })
 
     // D, E each provide 10000 LUSD to SP
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: erin })
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: flyn })
+    await stabilityPool.provideToSP(dec(1, 23), { from: erin })
+    await stabilityPool.provideToSP(dec(1, 23), { from: flyn })
 
     const LUSDinSP_0 = await stabilityPool.getTotalLUSDDeposits()
 
@@ -1084,8 +1084,8 @@ contract('Gas compensation tests', async accounts => {
     await openTrove({ ICR: toBN(dec(10, 18)), extraLUSDAmount: dec(1, 23), extraParams: { from: flyn } })
 
     // D, E each provide 10000 LUSD to SP
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: erin })
-    await stabilityPool.provideToSP(dec(1, 23), ZERO_ADDRESS, { from: flyn })
+    await stabilityPool.provideToSP(dec(1, 23), { from: erin })
+    await stabilityPool.provideToSP(dec(1, 23), { from: flyn })
 
     const LUSDinSP_0 = await stabilityPool.getTotalLUSDDeposits()
 

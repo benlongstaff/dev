@@ -383,7 +383,7 @@ contract('TroveManager', async accounts => {
     const { collateral: A_collateral, totalDebt: A_totalDebt } = await openTrove({ ICR: toBN(dec(2, 18)), extraParams: { from: alice } })
 
     // Alice proves 10 LUSD to SP
-    await stabilityPool.provideToSP(dec(10, 18), ZERO_ADDRESS, { from: alice })
+    await stabilityPool.provideToSP(dec(10, 18), { from: alice })
 
     // Set ETH:USD price to 105
     await priceFeed.setPrice('105000000000000000000')
@@ -501,7 +501,7 @@ contract('TroveManager', async accounts => {
     // Whale provides LUSD to SP
     const spDeposit = toBN(dec(100, 24))
     await openTrove({ ICR: toBN(dec(4, 18)), extraLUSDAmount: spDeposit, extraParams: { from: whale } })
-    await stabilityPool.provideToSP(spDeposit, ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(spDeposit, { from: whale })
 
     await openTrove({ ICR: toBN(dec(10, 18)), extraParams: { from: alice } })
     await openTrove({ ICR: toBN(dec(70, 18)), extraParams: { from: bob } })
@@ -551,7 +551,7 @@ contract('TroveManager', async accounts => {
     // Whale provides LUSD to SP
     const spDeposit = toBN(dec(100, 24))
     await openTrove({ ICR: toBN(dec(4, 18)), extraLUSDAmount: spDeposit, extraParams: { from: whale } })
-    await stabilityPool.provideToSP(spDeposit, ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(spDeposit, { from: whale })
 
     await openTrove({ ICR: toBN(dec(10, 18)), extraParams: { from: alice } })
     await openTrove({ ICR: toBN(dec(70, 18)), extraParams: { from: bob } })
@@ -701,7 +701,7 @@ contract('TroveManager', async accounts => {
     await lusdToken.transfer(dennis, spDeposit, { from: bob })
 
     //Dennis provides LUSD to SP
-    await stabilityPool.provideToSP(spDeposit, ZERO_ADDRESS, { from: dennis })
+    await stabilityPool.provideToSP(spDeposit, { from: dennis })
 
     // Carol gets liquidated
     await priceFeed.setPrice(dec(100, 18))
@@ -741,7 +741,7 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(218, 16)), extraLUSDAmount: toBN(dec(100, 18)), extraParams: { from: carol } })
 
     //Bob provides LUSD to SP
-    await stabilityPool.provideToSP(spDeposit, ZERO_ADDRESS, { from: bob })
+    await stabilityPool.provideToSP(spDeposit, { from: bob })
 
     // Carol gets liquidated
     await priceFeed.setPrice(dec(100, 18))
@@ -785,7 +785,7 @@ contract('TroveManager', async accounts => {
     const { collateral: C_collateral, totalDebt: C_debt } = await openTrove({ ICR: toBN(dec(210, 16)), extraLUSDAmount: toBN(dec(100, 18)), extraParams: { from: carol } })
 
     //Bob provides LUSD to SP
-    await stabilityPool.provideToSP(B_spDeposit, ZERO_ADDRESS, { from: bob })
+    await stabilityPool.provideToSP(B_spDeposit, { from: bob })
 
     // Carol gets liquidated
     await priceFeed.setPrice(dec(100, 18))
@@ -798,7 +798,7 @@ contract('TroveManager', async accounts => {
     assert.isAtMost(th.getDifference(bob_ETHGain_Before, th.applyLiquidationFee(C_collateral)), 1000)
 
     // Alice provides LUSD to SP
-    await stabilityPool.provideToSP(A_spDeposit, ZERO_ADDRESS, { from: alice })
+    await stabilityPool.provideToSP(A_spDeposit, { from: alice })
 
     // Confirm system is not in Recovery Mode
     assert.isFalse(await th.checkRecoveryMode(contracts));
@@ -958,7 +958,7 @@ contract('TroveManager', async accounts => {
     assert.equal((await troveManager.Troves(carol))[3].toString(), '3')
   })
 
-  it("liquidate(): when SP > 0, triggers LQTY reward event - increases the sum G", async () => {
+  it("liquidate(): when SP > 0", async () => {
     await openTrove({ ICR: toBN(dec(100, 18)), extraParams: { from: whale } })
 
     // A, B, C open troves 
@@ -969,10 +969,8 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(2, 18)), extraParams: { from: defaulter_1 } })
 
     // B provides to SP
-    await stabilityPool.provideToSP(dec(100, 18), ZERO_ADDRESS, { from: B })
+    await stabilityPool.provideToSP(dec(100, 18), { from: B })
     assert.equal(await stabilityPool.getTotalLUSDDeposits(), dec(100, 18))
-
-    const G_Before = await stabilityPool.epochToScaleToG(0, 0)
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -985,13 +983,9 @@ contract('TroveManager', async accounts => {
     await troveManager.liquidate(defaulter_1)
     assert.isFalse(await sortedTroves.contains(defaulter_1))
 
-    const G_After = await stabilityPool.epochToScaleToG(0, 0)
-
-    // Expect G has increased from the LQTY reward event triggered
-    assert.isTrue(G_After.gt(G_Before))
   })
 
-  it("liquidate(): when SP is empty, doesn't update G", async () => {
+  it("liquidate(): when SP is empty", async () => {
     await openTrove({ ICR: toBN(dec(100, 18)), extraParams: { from: whale } })
 
     // A, B, C open troves 
@@ -1002,7 +996,7 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(2, 18)), extraParams: { from: defaulter_1 } })
 
     // B provides to SP
-    await stabilityPool.provideToSP(dec(100, 18), ZERO_ADDRESS, { from: B })
+    await stabilityPool.provideToSP(dec(100, 18), { from: B })
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -1011,10 +1005,6 @@ contract('TroveManager', async accounts => {
 
     // Check SP is empty
     assert.equal((await stabilityPool.getTotalLUSDDeposits()), '0')
-
-    // Check G is non-zero
-    const G_Before = await stabilityPool.epochToScaleToG(0, 0)
-    assert.isTrue(G_Before.gt(toBN('0')))
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -1027,10 +1017,6 @@ contract('TroveManager', async accounts => {
     await troveManager.liquidate(defaulter_1)
     assert.isFalse(await sortedTroves.contains(defaulter_1))
 
-    const G_After = await stabilityPool.epochToScaleToG(0, 0)
-
-    // Expect G has not changed
-    assert.isTrue(G_After.eq(G_Before))
   })
 
   // --- liquidateTroves() ---
@@ -1056,7 +1042,7 @@ contract('TroveManager', async accounts => {
     assert.isFalse(await sortedTroves.contains(A))
 
     // A adds 10 LUSD to the SP, but less than C's debt
-    await stabilityPool.provideToSP(dec(10, 18), ZERO_ADDRESS, {from: A})
+    await stabilityPool.provideToSP(dec(10, 18), {from: A})
 
     // Price drops
     await priceFeed.setPrice(dec(100, 18))
@@ -1103,8 +1089,8 @@ contract('TroveManager', async accounts => {
     assert.isTrue(await th.checkRecoveryMode(contracts))
 
     // D and E fill the Stability Pool, enough to completely absorb C's debt of 70
-    await stabilityPool.provideToSP(dec(50, 18), ZERO_ADDRESS, {from: D})
-    await stabilityPool.provideToSP(dec(50, 18), ZERO_ADDRESS, {from: E})
+    await stabilityPool.provideToSP(dec(50, 18), {from: D})
+    await stabilityPool.provideToSP(dec(50, 18), {from: E})
 
     await priceFeed.setPrice(dec(50, 18))
 
@@ -1134,7 +1120,7 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(80, 18)), extraParams: { from: ida } })
 
     // Whale puts some tokens in Stability Pool
-    await stabilityPool.provideToSP(dec(300, 18), ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(dec(300, 18), { from: whale })
 
     // --- TEST ---
 
@@ -1490,7 +1476,7 @@ contract('TroveManager', async accounts => {
   it("liquidateTroves(): A liquidation sequence containing Pool offsets increases the TCR", async () => {
     // Whale provides 500 LUSD to SP
     await openTrove({ ICR: toBN(dec(100, 18)), extraLUSDAmount: toBN(dec(500, 18)), extraParams: { from: whale } })
-    await stabilityPool.provideToSP(dec(500, 18), ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(dec(500, 18), { from: whale })
 
     await openTrove({ ICR: toBN(dec(4, 18)), extraParams: { from: alice } })
     await openTrove({ ICR: toBN(dec(28, 18)), extraParams: { from: bob } })
@@ -1601,7 +1587,7 @@ contract('TroveManager', async accounts => {
     // Whale provides 400 LUSD to the SP
     const whaleDeposit = toBN(dec(40000, 18))
     await openTrove({ ICR: toBN(dec(100, 18)), extraLUSDAmount: whaleDeposit, extraParams: { from: whale } })
-    await stabilityPool.provideToSP(whaleDeposit, ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(whaleDeposit, { from: whale })
 
     const A_deposit = toBN(dec(10000, 18))
     const B_deposit = toBN(dec(30000, 18))
@@ -1613,8 +1599,8 @@ contract('TroveManager', async accounts => {
     const liquidatedDebt = A_debt.add(B_debt).add(C_debt)
 
     // A, B provide 100, 300 to the SP
-    await stabilityPool.provideToSP(A_deposit, ZERO_ADDRESS, { from: alice })
-    await stabilityPool.provideToSP(B_deposit, ZERO_ADDRESS, { from: bob })
+    await stabilityPool.provideToSP(A_deposit, { from: alice })
+    await stabilityPool.provideToSP(B_deposit, { from: bob })
 
     assert.equal((await sortedTroves.getSize()).toString(), '4')
 
@@ -1692,7 +1678,7 @@ contract('TroveManager', async accounts => {
     assert.isAtMost(th.getDifference(total_ETHinSP, th.applyLiquidationFee(liquidatedColl)), 1000)
   })
 
-  it("liquidateTroves(): when SP > 0, triggers LQTY reward event - increases the sum G", async () => {
+  it("liquidateTroves(): when SP > 0", async () => {
     await openTrove({ ICR: toBN(dec(100, 18)), extraParams: { from: whale } })
 
     // A, B, C open troves
@@ -1704,10 +1690,8 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(213, 16)), extraParams: { from: defaulter_2 } })
 
     // B provides to SP
-    await stabilityPool.provideToSP(dec(100, 18), ZERO_ADDRESS, { from: B })
+    await stabilityPool.provideToSP(dec(100, 18), { from: B })
     assert.equal(await stabilityPool.getTotalLUSDDeposits(), dec(100, 18))
-
-    const G_Before = await stabilityPool.epochToScaleToG(0, 0)
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -1721,13 +1705,9 @@ contract('TroveManager', async accounts => {
     assert.isFalse(await sortedTroves.contains(defaulter_1))
     assert.isFalse(await sortedTroves.contains(defaulter_2))
 
-    const G_After = await stabilityPool.epochToScaleToG(0, 0)
-
-    // Expect G has increased from the LQTY reward event triggered
-    assert.isTrue(G_After.gt(G_Before))
   })
 
-  it("liquidateTroves(): when SP is empty, doesn't update G", async () => {
+  it("liquidateTroves(): when SP is empty", async () => {
     await openTrove({ ICR: toBN(dec(100, 18)), extraParams: { from: whale } })
 
     // A, B, C open troves
@@ -1739,7 +1719,7 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(213, 16)), extraParams: { from: defaulter_2 } })
 
     // B provides to SP
-    await stabilityPool.provideToSP(dec(100, 18), ZERO_ADDRESS, { from: B })
+    await stabilityPool.provideToSP(dec(100, 18), { from: B })
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -1748,10 +1728,6 @@ contract('TroveManager', async accounts => {
 
     // Check SP is empty
     assert.equal((await stabilityPool.getTotalLUSDDeposits()), '0')
-
-    // Check G is non-zero
-    const G_Before = await stabilityPool.epochToScaleToG(0, 0)
-    assert.isTrue(G_Before.gt(toBN('0')))
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -1795,7 +1771,7 @@ contract('TroveManager', async accounts => {
     assert.isFalse(await sortedTroves.contains(A))
 
     // A adds 10 LUSD to the SP, but less than C's debt
-    await stabilityPool.provideToSP(dec(10, 18), ZERO_ADDRESS, {from: A})
+    await stabilityPool.provideToSP(dec(10, 18), {from: A})
 
     // Price drops
     await priceFeed.setPrice(dec(100, 18))
@@ -1842,8 +1818,8 @@ contract('TroveManager', async accounts => {
     assert.isTrue(await th.checkRecoveryMode(contracts))
 
     // D and E fill the Stability Pool, enough to completely absorb C's debt of 70
-    await stabilityPool.provideToSP(dec(50, 18), ZERO_ADDRESS, {from: D})
-    await stabilityPool.provideToSP(dec(50, 18), ZERO_ADDRESS, {from: E})
+    await stabilityPool.provideToSP(dec(50, 18), {from: D})
+    await stabilityPool.provideToSP(dec(50, 18), {from: E})
 
     await priceFeed.setPrice(dec(50, 18))
 
@@ -1870,7 +1846,7 @@ contract('TroveManager', async accounts => {
     assert.equal((await sortedTroves.getSize()).toString(), '6')
 
     // Whale puts some tokens in Stability Pool
-    await stabilityPool.provideToSP(dec(300, 18), ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(dec(300, 18), { from: whale })
 
     // --- TEST ---
 
@@ -1924,7 +1900,7 @@ contract('TroveManager', async accounts => {
     assert.equal((await sortedTroves.getSize()).toString(), '6')
 
     // Whale puts some tokens in Stability Pool
-    await stabilityPool.provideToSP(dec(300, 18), ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(dec(300, 18), { from: whale })
 
     // --- TEST ---
 
@@ -1981,7 +1957,7 @@ contract('TroveManager', async accounts => {
     assert.equal((await sortedTroves.getSize()).toString(), '6')
 
     // Whale puts some tokens in Stability Pool
-    await stabilityPool.provideToSP(dec(300, 18), ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(dec(300, 18), { from: whale })
 
     // --- TEST ---
 
@@ -2035,7 +2011,7 @@ contract('TroveManager', async accounts => {
     assert.equal((await sortedTroves.getSize()).toString(), '6')
 
     // Whale puts some tokens in Stability Pool
-    await stabilityPool.provideToSP(dec(300, 18), ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(dec(300, 18), { from: whale })
 
     // --- TEST ---
 
@@ -2071,7 +2047,7 @@ contract('TroveManager', async accounts => {
     assert.equal((await sortedTroves.getSize()).toString(), '5')
 
     // Whale puts some tokens in Stability Pool
-    await stabilityPool.provideToSP(spDeposit, ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(spDeposit, { from: whale })
 
     // --- TEST ---
 
@@ -2136,7 +2112,7 @@ contract('TroveManager', async accounts => {
     assert.equal((await sortedTroves.getSize()).toString(), '6')
 
     // Whale puts some tokens in Stability Pool
-    await stabilityPool.provideToSP(spDeposit, ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(spDeposit, { from: whale })
 
     // Whale transfers to Carol so she can close her trove
     await lusdToken.transfer(carol, dec(100, 18), { from: whale })
@@ -2193,7 +2169,7 @@ contract('TroveManager', async accounts => {
     assert.isFalse(await th.checkRecoveryMode(contracts));
   })
 
-  it("batchLiquidateTroves: when SP > 0, triggers LQTY reward event - increases the sum G", async () => {
+  it("batchLiquidateTroves: when SP > 0", async () => {
     await openTrove({ ICR: toBN(dec(100, 18)), extraParams: { from: whale } })
 
     // A, B, C open troves
@@ -2205,10 +2181,8 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(200, 16)), extraParams: { from: defaulter_2 } })
 
     // B provides to SP
-    await stabilityPool.provideToSP(dec(100, 18), ZERO_ADDRESS, { from: B })
+    await stabilityPool.provideToSP(dec(100, 18), { from: B })
     assert.equal(await stabilityPool.getTotalLUSDDeposits(), dec(100, 18))
-
-    const G_Before = await stabilityPool.epochToScaleToG(0, 0)
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -2222,13 +2196,9 @@ contract('TroveManager', async accounts => {
     assert.isFalse(await sortedTroves.contains(defaulter_1))
     assert.isFalse(await sortedTroves.contains(defaulter_2))
 
-    const G_After = await stabilityPool.epochToScaleToG(0, 0)
-
-    // Expect G has increased from the LQTY reward event triggered
-    assert.isTrue(G_After.gt(G_Before))
   })
 
-  it("batchLiquidateTroves(): when SP is empty, doesn't update G", async () => {
+  it("batchLiquidateTroves(): when SP is empty", async () => {
     await openTrove({ ICR: toBN(dec(100, 18)), extraParams: { from: whale } })
 
     // A, B, C open troves
@@ -2240,7 +2210,7 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(200, 16)), extraParams: { from: defaulter_2 } })
 
     // B provides to SP
-    await stabilityPool.provideToSP(dec(100, 18), ZERO_ADDRESS, { from: B })
+    await stabilityPool.provideToSP(dec(100, 18), { from: B })
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -2249,10 +2219,6 @@ contract('TroveManager', async accounts => {
 
     // Check SP is empty
     assert.equal((await stabilityPool.getTotalLUSDDeposits()), '0')
-
-    // Check G is non-zero
-    const G_Before = await stabilityPool.epochToScaleToG(0, 0)
-    assert.isTrue(G_Before.gt(toBN('0')))
 
     await th.fastForwardTime(timeValues.SECONDS_IN_ONE_HOUR, web3.currentProvider)
 
@@ -2266,10 +2232,6 @@ contract('TroveManager', async accounts => {
     assert.isFalse(await sortedTroves.contains(defaulter_1))
     assert.isFalse(await sortedTroves.contains(defaulter_2))
 
-    const G_After = await stabilityPool.epochToScaleToG(0, 0)
-
-    // Expect G has not changed
-    assert.isTrue(G_After.eq(G_Before))
   })
 
   // --- redemptions ---
@@ -3216,9 +3178,9 @@ contract('TroveManager', async accounts => {
     await lusdToken.transfer(erin, redemptionAmount, { from: alice })
 
     // B, C, D deposit some of their tokens to the Stability Pool
-    await stabilityPool.provideToSP(dec(50, 18), ZERO_ADDRESS, { from: bob })
-    await stabilityPool.provideToSP(dec(150, 18), ZERO_ADDRESS, { from: carol })
-    await stabilityPool.provideToSP(dec(200, 18), ZERO_ADDRESS, { from: dennis })
+    await stabilityPool.provideToSP(dec(50, 18), { from: bob })
+    await stabilityPool.provideToSP(dec(150, 18), { from: carol })
+    await stabilityPool.provideToSP(dec(200, 18), { from: dennis })
 
     let price = await priceFeed.getPrice()
     const bob_ICR_before = await troveManager.getCurrentICR(bob, price)
@@ -4325,7 +4287,7 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(3, 18)), extraLUSDAmount: dec(20, 18), extraParams: { from: carol } })
 
     await openTrove({ ICR: toBN(dec(20, 18)), extraLUSDAmount: totalDebt, extraParams: { from: whale } })
-    await stabilityPool.provideToSP(totalDebt, ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(totalDebt, { from: whale })
 
     // Price drops
     await priceFeed.setPrice(dec(100, 18))
@@ -4353,7 +4315,7 @@ contract('TroveManager', async accounts => {
     await openTrove({ ICR: toBN(dec(3, 18)), extraLUSDAmount: dec(20, 18), extraParams: { from: carol } })
 
     await openTrove({ ICR: toBN(dec(20, 18)), extraLUSDAmount: totalDebt, extraParams: { from: whale } })
-    await stabilityPool.provideToSP(totalDebt, ZERO_ADDRESS, { from: whale })
+    await stabilityPool.provideToSP(totalDebt, { from: whale })
 
     // Price drops
     await priceFeed.setPrice(dec(100, 18))
